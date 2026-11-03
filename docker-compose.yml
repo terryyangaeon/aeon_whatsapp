@@ -1,0 +1,57 @@
+services:
+  waha:
+    image: devlikeapro/waha:latest
+    container_name: waha-iot
+    restart: unless-stopped
+    networks:
+      - coolify
+    volumes:
+      - sessions:/app/.sessions
+    environment:
+      WHATSAPP_API_KEY:          ${WHATSAPP_API_KEY}
+      WAHA_SESSION:              ${WAHA_SESSION:-default}
+      WHATSAPP_API_HOSTNAME:     ${WHATSAPP_API_HOSTNAME:-0.0.0.0}
+      WAHA_DASHBOARD_USERNAME:   ${WAHA_DASHBOARD_USERNAME:-aeon}
+      WAHA_DASHBOARD_PASSWORD:   ${WAHA_DASHBOARD_PASSWORD}
+      WHATSAPP_SWAGGER_USERNAME: ${WHATSAPP_SWAGGER_USERNAME:-aeon}
+      WHATSAPP_SWAGGER_PASSWORD: ${WHATSAPP_SWAGGER_PASSWORD}
+      WAHA_LOG_FORMAT:           ${WAHA_LOG_FORMAT:-JSON}
+      WHATSAPP_DEFAULT_ENGINE:   ${WHATSAPP_DEFAULT_ENGINE:-WEBJS}
+
+    # Resource guards so a Puppeteer / Chromium leak can't drag the whole
+    # VPS down. Values match what we tell the user in the Coolify UI
+    # Resource Limits panel when the app is managed by Coolify.
+    mem_limit: 768m
+    mem_reservation: 256m
+    cpus: 1.5
+
+    # Traefik labels: Coolify's Traefik is the only proxy on this host.
+    # We borrow it for SSL + routing without letting Coolify manage this
+    # container (no Coolify label → Sentinel ignores it, no polling cost).
+    labels:
+      - "traefik.enable=true"
+
+      # Plain HTTP → redirect to HTTPS.
+      - "traefik.http.routers.waha-http.rule=Host(`waha.aeondelightasia.online`)"
+      - "traefik.http.routers.waha-http.entrypoints=http"
+      - "traefik.http.routers.waha-http.middlewares=waha-redirect-https"
+      - "traefik.http.middlewares.waha-redirect-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.waha-redirect-https.redirectscheme.permanent=true"
+
+      # HTTPS router with Let's Encrypt via Coolify's existing cert resolver.
+      - "traefik.http.routers.waha.rule=Host(`waha.aeondelightasia.online`)"
+      - "traefik.http.routers.waha.entrypoints=https"
+      - "traefik.http.routers.waha.tls=true"
+      - "traefik.http.routers.waha.tls.certresolver=letsencrypt"
+
+      # WAHA listens on 3000 inside the container.
+      - "traefik.http.services.waha.loadbalancer.server.port=3000"
+
+networks:
+  # Shared Docker network that Coolify's Traefik watches.
+  # Must exist (Coolify creates it when its proxy is installed).
+  coolify:
+    external: true
+
+volumes:
+  sessions:
