@@ -1,6 +1,9 @@
 services:
   waha:
-    image: devlikeapro/waha:latest
+    # Pinned to 2026.9.2 after 2026.10.1 shipped a broken whatsapp-web.js
+    # that crashes with "LifecycleWatcher disposed" during session init.
+    # Revisit when devlikeapro ships a fix (expected within days).
+    image: devlikeapro/waha:latest-2026.9.2
     container_name: waha-iot
     restart: unless-stopped
     networks:
