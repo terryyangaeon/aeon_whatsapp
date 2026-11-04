@@ -21,12 +21,18 @@ services:
       WAHA_LOG_FORMAT:           ${WAHA_LOG_FORMAT:-JSON}
       WHATSAPP_DEFAULT_ENGINE:   ${WHATSAPP_DEFAULT_ENGINE:-WEBJS}
 
-    # Resource guards so a Puppeteer / Chromium leak can't drag the whole
-    # VPS down. Values match what we tell the user in the Coolify UI
-    # Resource Limits panel when the app is managed by Coolify.
-    mem_limit: 768m
-    mem_reservation: 256m
-    cpus: 1.5
+    # Chromium needs 1.5-2 GB during WhatsApp Web init on Hostinger KVM.
+    # Earlier 768 MB cap caused page frames to detach during /api/sessions/.../start,
+    # producing the `LifecycleWatcher disposed` error. Keep the headroom and let the
+    # Coolify UI's Resource Limits panel narrow it back down if needed.
+    mem_limit: 2g
+    mem_reservation: 512m
+    cpus: 2.0
+    # Explicit DNS — Hostinger KVM sometimes resolves WhatsApp Web through
+    # IPv6-only paths that Puppeteer's network client mishandles.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
 
     # Traefik labels: Coolify's Traefik is the only proxy on this host.
     # We borrow it for SSL + routing without letting Coolify manage this
