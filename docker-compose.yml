@@ -6,7 +6,7 @@ services:
     networks:
       - coolify
     volumes:
-      - sessions:/app/.sessions
+      - sessions-v2:/app/.sessions
     environment:
       WHATSAPP_API_KEY:          ${WHATSAPP_API_KEY}
       WAHA_SESSION:              ${WAHA_SESSION:-default}
@@ -54,4 +54,4 @@ networks:
     external: true
 
 volumes:
-  sessions:
+  sessions-v2:
